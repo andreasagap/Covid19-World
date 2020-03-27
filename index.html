@@ -1,0 +1,29 @@
+<html>
+
+<head>
+ <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <link rel="stylesheet" href="style_main.css" type="text/css" media="screen"/>
+<script src="map/jquery-jvectormap-2.0.5.min.js"></script>
+  <link rel="stylesheet" href="map/jquery-jvectormap-2.0.5.css" type="text/css" media="screen"/>
+<script src="https://jvectormap.com/js/jquery-jvectormap-world-mill.js"></script>
+</head>
+<body>
+<h1>COVID-19 Global Report</h1>
+<table style="width: 100%;" >
+  <tbody>
+  <tr>
+  <td><h2>Confirmed</h2></td>
+  <td><h2>Deaths</h2></td>
+  </tr>
+  <tr>
+  <td><h3 id="global_confirmed">{{ message }}</h3></td>
+  <td><h3 id="global_deaths">{{ message }}</h3></td>
+  </tr>
+  </tbody>
+  </table>
+<div id="world-map" style="width: 100%; height: 80%;"></div>
+
+</body>
+</html>

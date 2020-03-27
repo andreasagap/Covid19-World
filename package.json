@@ -1,0 +1,22 @@
+{
+  "name": "covid19-world",
+  "version": "1.0.0",
+  "description": "",
+  "main": "map_general.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andreasagap/Covid19-World.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/andreasagap/Covid19-World/issues"
+  },
+  "homepage": "https://github.com/andreasagap/Covid19-World#readme",
+  "dependencies": {
+    "iso-3166-1-codes": "^1.0.1"
+  }
+}
