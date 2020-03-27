@@ -1,6 +1,6 @@
 # Covid19-World
 
-![alt text](https://github.com/andreasagap/Covid19-World/Images/map.png "Preview")
+![alt text](https://github.com/andreasagap/Covid19-World/blob/master/Images/map.PNG "Preview")
 
 ## Contributors ✨
 <table>
