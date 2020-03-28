@@ -1,19 +1,15 @@
 const countries = require('iso-3166-1-codes');
 const byAlpha2 = countries.byAlpha2();
 var total_countries = 0;
+var global_confirmed = 0;
+var global_deaths = 0;
+var confirmedData1, deathsData = [];
 $(document).ready(function () {
     $(function () {
 
-
-
-        for (var i = 0, keys = Object.keys(confirmedData), ii = keys.length; i < ii; i++) {
-            console.log('key : ' + keys[i] + ' val : ' + confirmedData[keys[i]]);
-            getData(byAlpha2.get(keys[i]), keys[i]);
-        }
-
-
-
-
+        confirmedData1 = Array.from(confirmedData);
+        deathsData = Array.from(confirmedData);
+        getGlobal();
     }); // End - (function(---))
 }) // End - $(document).ready...
 var d = new Date();
@@ -24,55 +20,187 @@ var yyyy = d.getFullYear();
 
 yesterday = yyyy + '-' + mm + '-' + dd;
 
-function getData(alpha3, alpha2) {
-    console.log(alpha3);
+function getResults() {
+    var wrld = {
+        map: 'world_mill',
+        normalizeFunction: 'polynomial',
+        regionStyle: regionStyling,
+        backgroundColor: '#22313F',
+        series: {
+            regions: [{
+                values: confirmedData,
+                attribute: 'fill',
+                scale: ['#fbfbfb', '#ff0000']
+            }]
+        },
+        onRegionTipShow: function (e, el, code) {
+            el.html('In ' + el.html() + ': <ul>' + getDataPerCountry(confirmedData1[code], deathsData[code]) + '</ul>  Click to know more');
+            $(".lbl-hover").html('Hovered country value: ' + confirmedData[code]);
+        },
+        onRegionClick: function (event, code) {
+            getChart(code);
+        },
 
+    };
+
+    /* Setting up of the map */
+    if ($('#world-map').length > 0) {
+        $('#world-map').vectorMap(wrld);
+    }
+}
+
+function getChart(code) {
+   
+    $('#myModal').modal('show');
+    // var app = new Vue({
+    //     el: '#title',
+    //     data: {
+    //         message: code
+    //     }
+    // })
+    new Vue({
+        el: '#chart',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          
+          series: [{
+              name: "Desktops",
+              data: [10, 41, 35, 51, 49, 62, 69, 91, 148]
+          }],
+          chartOptions: {
+            chart: {
+              height: 350,
+              type: 'line',
+              zoom: {
+                enabled: false
+              }
+            },
+            dataLabels: {
+              enabled: false
+            },
+            stroke: {
+              curve: 'straight'
+            },
+            title: {
+              text: 'Product Trends by Month',
+              align: 'left'
+            },
+            grid: {
+              row: {
+                colors: ['#f3f3f3', 'transparent'], // takes an array which will be repeated on columns
+                opacity: 0.5
+              },
+            },
+            xaxis: {
+              categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+            }
+          },
+          
+          
+        },
+        
+      })
+    
+    
+}
+async function getData(alpha3, alpha2) {
+ //   console.log("Total: " + alpha3["alpha3"])
+  //  console.log(alpha3);
     fetch("https://covidapi.info/api/v1/country/" + alpha3["alpha3"] + "/" + yesterday)
         .then(response => response.json())
         .then(data => {
 
-            console.log(data["result"][yesterday]);
+           // console.log(data)
+            if (data["result"].length != 0) {
+                confirmedData[alpha2] = data["result"][yesterday]["confirmed"]; // - data["result"][yesterday]["deaths"];
 
-            confirmedData[alpha2] = data["result"][yesterday]["confirmed"] - data["result"][yesterday]["recovered"] - data["result"][yesterday]["deaths"];
-            console.log(confirmedData[alpha2])
+                confirmedData1[alpha2] = data["result"][yesterday]["confirmed"];
+                deathsData[alpha2] = data["result"][yesterday]["deaths"];
+              //  console.log(confirmedData[alpha2])
+            } else {
+                confirmedData[alpha2] = 0;
+            }
+            // console.log(alpha2)
+            // console.log(data["result"][yesterday]);
+
             total_countries += 1;
-            console.log(total_countries)
-            if (total_countries === 108) {
-
+            console.log(total_countries);
+            if (total_countries == 232) {
+                getResults();
                 /* map parameters */
-                var wrld = {
-                    map: 'world_mill',
-                    normalizeFunction: 'polynomial',
-                    regionStyle: regionStyling,
-                    backgroundColor: '#22313F',
-                    series: {
-                        regions: [{
-                            values: confirmedData,
-                            attribute: 'fill',
-                            scale: ['#fbfbfb', '#ff0000']
-                        }]
-                    },
-                    onRegionTipShow: function (e, el, code) {
-                        el.html('In ' + el.html() + ': <ul>' + getDataPerCountry(confirmedData[code]) + '</ul>  Click to know more');
-                        $(".lbl-hover").html('Hovered country value: ' + confirmedData[code]);
-                    }
-                };
 
-                /* Setting up of the map */
-                if ($('#world-map').length > 0) {
-                    $('#world-map').vectorMap(wrld);
-                }
+            }
+        })
+        .catch(function (error) {
+            //console.log(error)
+            confirmedData[alpha2] = 0;
+            total_countries += 1;
+            //console.log(total_countries);
+            if (total_countries == 232) {
+                getResults();
+                /* map parameters */
+
             }
         })
 }
+
+
+
+function getGlobal() {
+    var result = [];
+
+
+    fetch("https://covidapi.info/api/v1/global")
+        .then(response => response.json())
+        .then(data => {
+
+          //  console.log(data["result"]);
+            global_confirmed = data["result"]["confirmed"];
+            global_deaths = data["result"]["deaths"];
+            var app = new Vue({
+                el: '#global_confirmed',
+                data: {
+                    message: global_confirmed
+                }
+            })
+            var app = new Vue({
+                el: '#global_deaths',
+                data: {
+                    message: global_deaths
+                }
+            })
+
+            for (var i in confirmedData) {
+              //  console.log("TESTG", i);
+                getData(byAlpha2.get(i), i);
+                // wait(100);
+            }
+            //     result.push([i, confirmedData[i]]);
+            // for (var key of Object.keys(result)) {
+            //     getData(byAlpha2.get(key), key);
+
+            // }
+
+
+        })
+
+}
+
+function wait(ms) {
+    var d = new Date();
+    var d2 = null;
+    do {
+        d2 = new Date();
+    }
+    while (d2 - d < ms);
+}
 /* Function for showing products name*/
-function getDataPerCountry(value) {
+function getDataPerCountry(confirmed, deaths) {
     var ret = "";
-    ret += "<li>Confirmed</li>";
-    ret += "<li>Recovered</li>";
-    ret += "<li>Deaths</li>";
-
-
+    ret += "<li>Confirmed: " + confirmed + "</li>";
+    ret += "<li>Deaths: " + deaths + "</li>";
     return ret;
 }
 
@@ -91,240 +219,239 @@ var regionStyling = {
 };
 /* Data that is passed to the map */
 var confirmedData = {
-    "AF": 1.0,
-    "AL": 2.0,
-    "DZ": 3.0,
-    "AS": 4.0,
-    "AD": 5.0,
-    "AO": 1.0,
-    "AI": 2.0,
-    "AQ": 3.0,
-    "AG": 4.0,
-    "AR": 5.0,
-    "AM": 1.0,
-    "AW": 2.0,
-    "AU": 3.0,
-    "AT": 4.0,
-    "AZ": 5.0,
-    "BS": 1.0,
-    "BH": 2.0,
-    "BD": 3.0,
-    "BB": 4.0,
-    "BY": 5.0,
-    "BE": 1.0,
-    "BZ": 2.0,
-    "BJ": 3.0,
-    "BM": 4.0,
-    "BT": 5.0,
-    "BO": 1.0,
-    "BA": 2.0,
-    "BW": 3.0,
-    "BR": 4.0,
-    "IO": 5.0,
-    "VG": 1.0,
-    "BN": 2.0,
-    "BG": 3.0,
-    "BF": 4.0,
-    "MM": 5.0,
-    "BI": 1.0,
-    "KH": 2.0,
-    "CM": 3.0,
-    "CA": 4.0,
-    "CV": 5.0,
-    "KY": 1.0,
-    "CF": 2.0,
-    "TD": 3.0,
-    "CL": 4.0,
-    "CN": 5.0,
-    "CX": 1.0,
-    "CC": 2.0,
-    "CO": 3.0,
-    "KM": 4.0,
-    "CK": 5.0,
-    "CR": 1.0,
-    "HR": 2.0,
-    "CU": 3.0,
-    "CY": 4.0,
-    "CZ": 5.0,
-    "CD": 1.0,
-    "DK": 2.0,
-    "DJ": 3.0,
-    "DM": 4.0,
-    "DO": 5.0,
-    "EC": 1.0,
-    "EG": 2.0,
-    "SV": 3.0,
-    "GQ": 4.0,
-    "ER": 5.0,
-    "EE": 1.0,
-    "ET": 2.0,
-    "FK": 3.0,
-    "FO": 4.0,
-    "FJ": 5.0,
-    "FI": 1.0,
-    "FR": 2.0,
-    "PF": 3.0,
-    "GA": 4.0,
-    "GM": 5.0,
-    "GE": 1.0,
-    "DE": 2.0,
-    "GH": 3.0,
-    "GI": 4.0,
-    "GR": 5.0,
-    "GL": 1.0,
-    "GD": 2.0,
-    "GU": 3.0,
-    "GT": 4.0,
-    "GN": 5.0,
-    "GW": 1.0,
-    "GY": 2.0,
-    "HT": 3.0,
-    "VA": 4.0,
-    "HN": 5.0,
-    "HK": 1.0,
-    "HU": 2.0,
-    "IS": 3.0,
-    "IS": 4.0,
-    "IN": 5.0,
-    "ID": 1.0,
-    "IR": 2.0,
-    "IQ": 3.0,
-    "IE": 4.0,
-    "IM": 5.0,
-    "IL": 1.0,
-    "IT": 2.0,
-    "CI": 3.0,
-    "JM": 4.0,
-    "JP": 5.0,
-    "JE": 1.0,
-    "JO": 2.0,
-    "KZ": 3.0,
-    "KE": 4.0,
-    "KI": 5.0,
-    "KW": 1.0,
-    "KG": 2.0,
-    "LA": 3.0,
-    "LV": 4.0,
-    "LB": 5.0,
-    "LS": 1.0,
-    "LR": 2.0,
-    "LY": 3.0,
-    "LI": 4.0,
-    "LT": 5.0,
-    "LU": 1.0,
-    "MO": 2.0,
-    "MK": 3.0,
-    "MG": 4.0,
-    "MW": 5.0,
-    "MY": 1.0,
-    "MV": 2.0,
-    "ML": 3.0,
-    "MT": 4.0,
-    "MH": 5.0,
-    "MR": 1.0,
-    "MU": 2.0,
-    "YT": 3.0,
-    "MX": 4.0,
-    "FM": 5.0,
-    "MD": 1.0,
-    "MC": 2.0,
-    "MN": 3.0,
-    "ME": 4.0,
-    "MS": 5.0,
-    "MA": 1.0,
-    "MZ": 2.0,
-    "NA": 3.0,
-    "NR": 4.0,
-    "NP": 5.0,
-    "NL": 1.0,
-    "AN": 2.0,
-    "NC": 3.0,
-    "NZ": 4.0,
-    "NI": 5.0,
-    "NE": 1.0,
-    "NG": 2.0,
-    "NU": 3.0,
-    "KP": 4.0,
-    "MP": 5.0,
-    "NO": 1.0,
-    "OM": 2.0,
-    "PK": 3.0,
-    "PW": 4.0,
-    "PA": 5.0,
-    "PG": 1.0,
-    "PY": 2.0,
-    "PE": 3.0,
-    "PH": 4.0,
-    "PN": 5.0,
-    "PL": 1.0,
-    "PT": 2.0,
-    "PR": 3.0,
-    "QA": 4.0,
-    "CG": 5.0,
-    "RO": 1.0,
-    "RU": 2.0,
-    "RW": 3.0,
-    "BL": 4.0,
-    "SH": 5.0,
-    "KN": 1.0,
-    "LC": 2.0,
-    "MF": 3.0,
-    "PM": 4.0,
-    "VC": 5.0,
-    "WS": 1.0,
-    "SM": 2.0,
-    "ST": 3.0,
-    "SA": 4.0,
-    "SN": 5.0,
-    "RS": 1.0,
-    "SC": 2.0,
-    "SL": 3.0,
-    "SG": 4.0,
-    "SK": 5.0,
-    "SI": 1.0,
-    "SB": 2.0,
-    "SO": 3.0,
-    "ZA": 4.0,
-    "KR": 5.0,
-    "ES": 1.0,
-    "LK": 2.0,
-    "SD": 3.0,
-    "SR": 4.0,
-    "SJ": 5.0,
-    "SZ": 1.0,
-    "SE": 2.0,
-    "CH": 3.0,
-    "SY": 4.0,
-    "TW": 5.0,
-    "TJ": 1.0,
-    "TZ": 2.0,
-    "TH": 3.0,
-    "TL": 4.0,
-    "TG": 5.0,
-    "TK": 1.0,
-    "TO": 2.0,
-    "TT": 3.0,
-    "TN": 4.0,
-    "TR": 5.0,
-    "TM": 1.0,
-    "TC": 2.0,
-    "TV": 3.0,
-    "UG": 4.0,
-    "UA": 5.0,
-    "AE": 1.0,
-    "GB": 2.0,
-    "US": 3.0,
-    "UY": 4.0,
-    "US": 5.0,
-    "VI": 1.0,
-    "UZ": 2.0,
-    "VU": 3.0,
-    "VE": 4.0,
-    "VN": 5.0,
-    "WF": 1.0,
-    "EH": 2.0,
-    "YE": 3.0,
-    "ZM": 4.0,
-    "ZW": 5.0
+    "AF": 0.0,
+    "AL": 0.0,
+    "DZ": 0.0,
+    "AS": 0.0,
+    "AD": 0.0,
+    "AO": 0.0,
+    "AI": 0.0,
+    "AQ": 0.0,
+    "AG": 0.0,
+    "AR": 0.0,
+    "AM": 0.0,
+    "AW": 0.0,
+    "AU": 0.0,
+    "AT": 0.0,
+    "AZ": 0.0,
+    "BS": 0.0,
+    "BH": 0.0,
+    "BD": 0.0,
+    "BB": 0.0,
+    "BY": 0.0,
+    "BE": 0.0,
+    "BZ": 0.0,
+    "BJ": 0.0,
+    "BM": 0.0,
+    "BT": 0.0,
+    "BO": 0.0,
+    "BA": 0.0,
+    "BW": 0.0,
+    "BR": 0.0,
+    "IO": 0.0,
+    "VG": 0.0,
+    "BN": 0.0,
+    "BG": 0.0,
+    "BF": 0.0,
+    "MM": 0.0,
+    "BI": 0.0,
+    "KH": 0.0,
+    "CM": 0.0,
+    "CA": 0.0,
+    "CV": 0.0,
+    "KY": 0.0,
+    "CF": 0.0,
+    "TD": 0.0,
+    "CL": 0.0,
+    "CN": 0.0,
+    "CX": 0.0,
+    "CC": 0.0,
+    "CO": 0.0,
+    "KM": 0.0,
+    "CK": 0.0,
+    "CR": 0.0,
+    "HR": 0.0,
+    "CU": 0.0,
+    "CY": 0.0,
+    "CZ": 0.0,
+    "CD": 0.0,
+    "DK": 0.0,
+    "DJ": 0.0,
+    "DM": 0.0,
+    "DO": 0.0,
+    "EC": 0.0,
+    "EG": 0.0,
+    "SV": 0.0,
+    "GQ": 0.0,
+    "ER": 0.0,
+    "EE": 0.0,
+    "ET": 0.0,
+    "FK": 0.0,
+    "FO": 0.0,
+    "FJ": 0.0,
+    "FI": 0.0,
+    "FR": 0.0,
+    "PF": 0.0,
+    "GA": 0.0,
+    "GM": 0.0,
+    "GE": 0.0,
+    "DE": 0.0,
+    "GH": 0.0,
+    "GI": 0.0,
+    "GR": 0.0,
+    "GL": 0.0,
+    "GD": 0.0,
+    "GU": 0.0,
+    "GT": 0.0,
+    "GN": 0.0,
+    "GW": 0.0,
+    "GY": 0.0,
+    "HT": 0.0,
+    "VA": 0.0,
+    "HN": 0.0,
+    "HK": 0.0,
+    "HU": 0.0,
+    "IS": 0.0,
+    "IS": 0.0,
+    "IN": 0.0,
+    "ID": 0.0,
+    "IR": 0.0,
+    "IQ": 0.0,
+    "IE": 0.0,
+    "IM": 0.0,
+    "IL": 0.0,
+    "IT": 0.0,
+    "CI": 0.0,
+    "JM": 0.0,
+    "JP": 0.0,
+    "JE": 0.0,
+    "JO": 0.0,
+    "KZ": 0.0,
+    "KE": 0.0,
+    "KI": 0.0,
+    "KW": 0.0,
+    "KG": 0.0,
+    "LA": 0.0,
+    "LV": 0.0,
+    "LB": 0.0,
+    "LS": 0.0,
+    "LR": 0.0,
+    "LY": 0.0,
+    "LI": 0.0,
+    "LT": 0.0,
+    "LU": 0.0,
+    "MO": 0.0,
+    "MK": 0.0,
+    "MG": 0.0,
+    "MW": 0.0,
+    "MY": 0.0,
+    "MV": 0.0,
+    "ML": 0.0,
+    "MT": 0.0,
+    "MH": 0.0,
+    "MR": 0.0,
+    "MU": 0.0,
+    "YT": 0.0,
+    "MX": 0.0,
+    "FM": 0.0,
+    "MD": 0.0,
+    "MC": 0.0,
+    "MN": 0.0,
+    "ME": 0.0,
+    "MS": 0.0,
+    "MA": 0.0,
+    "MZ": 0.0,
+    "NA": 0.0,
+    "NR": 0.0,
+    "NP": 0.0,
+    "NL": 0.0,
+    "AN": 0.0,
+    "NC": 0.0,
+    "NZ": 0.0,
+    "NI": 0.0,
+    "NE": 0.0,
+    "NG": 0.0,
+    "NU": 0.0,
+    "KP": 0.0,
+    "MP": 0.0,
+    "NO": 0.0,
+    "OM": 0.0,
+    "PK": 0.0,
+    "PW": 0.0,
+    "PA": 0.0,
+    "PG": 0.0,
+    "PY": 0.0,
+    "PE": 0.0,
+    "PH": 0.0,
+    "PN": 0.0,
+    "PL": 0.0,
+    "PT": 0.0,
+    "PR": 0.0,
+    "QA": 0.0,
+    "CG": 0.0,
+    "RO": 0.0,
+    "RU": 0.0,
+    "RW": 0.0,
+    "BL": 0.0,
+    "SH": 0.0,
+    "KN": 0.0,
+    "LC": 0.0,
+    "MF": 0.0,
+    "PM": 0.0,
+    "VC": 0.0,
+    "WS": 0.0,
+    "SM": 0.0,
+    "ST": 0.0,
+    "SA": 0.0,
+    "SN": 0.0,
+    "RS": 0.0,
+    "SC": 0.0,
+    "SL": 0.0,
+    "SG": 0.0,
+    "SK": 0.0,
+    "SI": 0.0,
+    "SB": 0.0,
+    "SO": 0.0,
+    "ZA": 0.0,
+    "KR": 0.0,
+    "ES": 0.0,
+    "LK": 0.0,
+    "SD": 0.0,
+    "SR": 0.0,
+    "SJ": 0.0,
+    "SZ": 0.0,
+    "SE": 0.0,
+    "CH": 0.0,
+    "SY": 0.0,
+    "TW": 0.0,
+    "TJ": 0.0,
+    "TZ": 0.0,
+    "TH": 0.0,
+    "TL": 0.0,
+    "TG": 0.0,
+    "TK": 0.0,
+    "TO": 0.0,
+    "TT": 0.0,
+    "TN": 0.0,
+    "TR": 0.0,
+    "TM": 0.0,
+    "TC": 0.0,
+    "TV": 0.0,
+    "UG": 0.0,
+    "UA": 0.0,
+    "AE": 0.0,
+    "GB": 0.0,
+    "UY": 0.0,
+    "US": 0.0,
+    "VI": 0.0,
+    "UZ": 0.0,
+    "VU": 0.0,
+    "VE": 0.0,
+    "VN": 0.0,
+    "WF": 0.0,
+    "EH": 0.0,
+    "YE": 0.0,
+    "ZM": 0.0,
+    "ZW": 0.0
 
 };
