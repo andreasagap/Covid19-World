@@ -1,6 +1,7 @@
 <html>
 
 <head>
+  <meta charset="utf-8"/>
  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
   <script src="bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
@@ -37,8 +38,9 @@
     <!-- Modal content-->
     <div class="modal-content">
       <div class="modal-body">
-        <div id="chart">
-          <apexchart type="line" height="350" :options="chartOptions" :series="series"></apexchart>
+        <div id="synced-charts">
+          <div id="chart-line"></div>
+          <div id="chart-line2"></div>
         </div>
       </div>
       <div class="modal-footer">

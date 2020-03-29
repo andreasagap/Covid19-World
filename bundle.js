@@ -5,6 +5,26 @@ var total_countries = 0;
 var global_confirmed = 0;
 var global_deaths = 0;
 var confirmedData1, deathsData = [];
+Date.prototype.addDays = function (days) {
+    var date = new Date(this.valueOf());
+    date.setDate(date.getDate() + days);
+    return date;
+}
+
+function getRangeDates(startDate, stopDate) {
+    var dateArray = new Array();
+    var currentDate = startDate;
+    while (currentDate <= stopDate) {
+        var dd = String(currentDate.getDate()).padStart(2, '0');
+        var mm = String(currentDate.getMonth() + 1).padStart(2, '0'); //January is 0!
+        var yyyy = currentDate.getFullYear();
+
+        var day = yyyy + '-' + mm + '-' + dd;
+        dateArray.push(day);
+        currentDate = currentDate.addDays(1);
+    }
+    return dateArray;
+}
 $(document).ready(function () {
     $(function () {
 
@@ -50,99 +70,144 @@ function getResults() {
     }
 }
 
-function getChart(code) {
-   
-    $('#myModal').modal('show');
-    // var app = new Vue({
-    //     el: '#title',
-    //     data: {
-    //         message: code
-    //     }
-    // })
-    new Vue({
-        el: '#chart',
-        components: {
-          apexchart: VueApexCharts,
-        },
-        data: {
-          
-          series: [{
-              name: "Desktops",
-              data: [10, 41, 35, 51, 49, 62, 69, 91, 148]
-          }],
-          chartOptions: {
-            chart: {
-              height: 350,
-              type: 'line',
-              zoom: {
-                enabled: false
-              }
-            },
-            dataLabels: {
-              enabled: false
-            },
-            stroke: {
-              curve: 'straight'
-            },
+async function getDataChartPerCountry(code, dates_array) {
+    var confirmed = []
+    var deaths = []
+
+    fetch("https://covidapi.info/api/v1/country/" + byAlpha2.get(code)["alpha3"])
+        .then(response => response.json())
+        .then(data => {
+            for (var d of dates_array) {
+                console.log(data["result"][d]["confirmed"])
+                console.log(data["result"][d]["deaths"])
+                confirmed.push({
+                    x: d,
+                    y: data["result"][d]["confirmed"]
+                })
+                deaths.push({
+                    x: d,
+                    y: data["result"][d]["deaths"]
+                })
+                // confirmed.push(data["result"][d]["confirmed"])
+                // deaths.push(data["result"][d]["deaths"])
+            }
+            createChart(code, dates_array, confirmed, deaths)
+        })
+        .catch(function (error) {
+            console.log(error)
+            createChart(code, dates_array, confirmed, deaths)
+        })
+
+
+}
+
+function createChart(code, dates_array, confirmed, deaths) {
+    if (confirmed.length != 0) {
+        console.log(confirmed)
+        console.log(deaths)
+        $('#myModal').modal('show');
+        var optionsLine = {
+            series: [{
+                name: "Confirmed",
+                data: confirmed
+            }],
             title: {
-              text: 'Product Trends by Month',
-              align: 'left'
+                text: byAlpha2.get(code)["name"],
+                align: 'left'
             },
-            grid: {
-              row: {
-                colors: ['#f3f3f3', 'transparent'], // takes an array which will be repeated on columns
-                opacity: 0.5
-              },
+            colors: ['#ff0000'],
+            chart: {
+                height: 250,
+                zoom: {
+                    enabled: false
+                },
+                id: 'line-1',
+                group: 'social',
+                type: 'line',
             },
             xaxis: {
-              categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+                type: "datetime"
+            },
+            yaxis: {
+                labels: {
+                    minWidth: 40
+                }
             }
-          },
-          
-          
-        },
+        };
+        var chart = new ApexCharts(document.querySelector("#chart-line"), optionsLine)
+        chart.render()
+
+        var optionsArea = {
+            series: [{
+                name: "Deaths",
+                data: deaths
+            }],
+            colors: ['#000000'],
+            chart: {
+                height: 250,
+                zoom: {
+                    enabled: false
+                },
+                id: 'line-2',
+                group: 'social',
+                type: 'line'
+            },
+            xaxis: {
+                type: "datetime"
+            },
+            yaxis: {
+                labels: {
+                    minWidth: 40
+                }
+            }
+        };
+        var chart = new ApexCharts(document.querySelector("#chart-line2"), optionsArea)
+        chart.render()
+        $('#myModal').on('hidden.bs.modal', function () {
+            chart.destroy();
+        });
         
-      })
-    
-    
+    }
+}
+
+function getChart(code) {
+    var d = new Date();
+    d.setDate(d.getDate() - 1);
+    dd = String(d.getDate()).padStart(2, '0');
+    mm = String(d.getMonth() + 1).padStart(2, '0'); //January is 0!
+    yyyy = d.getFullYear();
+
+    yesterday = yyyy + '-' + mm + '-' + dd;
+    var dates_array = getRangeDates(new Date("2020-01-22"), d)
+    console.log("dates")
+    console.log(dates_array)
+    getDataChartPerCountry(code, dates_array);
 }
 async function getData(alpha3, alpha2) {
- //   console.log("Total: " + alpha3["alpha3"])
-  //  console.log(alpha3);
+    //   console.log("Total: " + alpha3["alpha3"])
+    //  console.log(alpha3);
     fetch("https://covidapi.info/api/v1/country/" + alpha3["alpha3"] + "/" + yesterday)
         .then(response => response.json())
         .then(data => {
-
-           // console.log(data)
             if (data["result"].length != 0) {
                 confirmedData[alpha2] = data["result"][yesterday]["confirmed"]; // - data["result"][yesterday]["deaths"];
 
                 confirmedData1[alpha2] = data["result"][yesterday]["confirmed"];
                 deathsData[alpha2] = data["result"][yesterday]["deaths"];
-              //  console.log(confirmedData[alpha2])
             } else {
                 confirmedData[alpha2] = 0;
             }
-            // console.log(alpha2)
-            // console.log(data["result"][yesterday]);
-
             total_countries += 1;
             console.log(total_countries);
             if (total_countries == 232) {
                 getResults();
-                /* map parameters */
-
             }
         })
         .catch(function (error) {
-            //console.log(error)
             confirmedData[alpha2] = 0;
             total_countries += 1;
-            //console.log(total_countries);
             if (total_countries == 232) {
                 getResults();
-                /* map parameters */
-
             }
         })
 }
@@ -157,7 +222,7 @@ function getGlobal() {
         .then(response => response.json())
         .then(data => {
 
-          //  console.log(data["result"]);
+            //  console.log(data["result"]);
             global_confirmed = data["result"]["confirmed"];
             global_deaths = data["result"]["deaths"];
             var app = new Vue({
@@ -174,7 +239,7 @@ function getGlobal() {
             })
 
             for (var i in confirmedData) {
-              //  console.log("TESTG", i);
+                //  console.log("TESTG", i);
                 getData(byAlpha2.get(i), i);
                 // wait(100);
             }
