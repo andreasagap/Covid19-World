@@ -2,6 +2,7 @@
 
 ![alt text](https://github.com/andreasagap/Covid19-World/blob/master/Images/map.PNG "Preview")
 
+Link :link: : [COVID-19 Global Report](https://andreasagap.github.io/Covid19-World/)
 ## Contributors ✨
 <table>
   <tr>
